@@ -26,18 +26,11 @@ class Cena:
         
         self.elementos = []
         self.interacao = []
+        self.nome = nome
         
         # Setup inicial VTK
         self.ren = vtk.vtkRenderer()
         self.ren.SetBackground((.102, .2, .4))
-        self.renWin = vtk.vtkRenderWindow()
-        self.renWin.AddRenderer(self.ren)
-        self.renWin.SetSize(600, 600)
-        self.renWin.SetWindowName(nome)
-        self.iren = vtk.vtkRenderWindowInteractor()
-        self.iren.SetRenderWindow(self.renWin)
-        self.style = vtk.vtkInteractorStyleImage()
-        self.iren.SetInteractorStyle(self.style)
         
     def addElem(self, elementos):
         """
@@ -75,9 +68,26 @@ class Cena:
         """
         Renderiza a cena numa janela interativa.
         """
+        self.renWin = vtk.vtkRenderWindow()
+        self.renWin.AddRenderer(self.ren)
+        self.renWin.SetSize(600, 600)
+        self.renWin.SetWindowName(self.nome)
+        self.iren = vtk.vtkRenderWindowInteractor()
+        self.iren.SetRenderWindow(self.renWin)
+        self.style = vtk.vtkInteractorStyleImage()
+        self.iren.SetInteractorStyle(self.style)
         self.iren.Initialize()
         self.renWin.Render()
         self.iren.Start()
+        
+    def hide(self):
+        """
+        Fecha a janela
+        """
+        self.renWin.Finalize()
+        self.iren.TerminateApp()
+        
+        del self.renWin, self.iren
         
     
 
@@ -196,6 +206,9 @@ class Disco(Elemento):
         self._tipo = "Disco"
         self.r = raio
         self.centro = centro
+        # axis-aligned bounding box (caixa de contorno)
+        self.aabb = {'x': [centro[0]-raio, centro[0]+raio],
+                     'y': [centro[1]-raio, centro[1]+raio]}
         self.mat = material
         self.area = math.pi*raio**2
         self.massa = self.mat.den * self.area
@@ -227,7 +240,9 @@ class Parede(Elemento):
         self._tipo = "Parede"
         self.p1 = p1[:] + (0,0,0)[2:3]
         self.p2 = p2[:] + (0,0,0)[2:3]
-        
+        # axis-aligned bounding box (caixa de contorno)
+        self.aabb = {'x': [min(p1[0], p2[0]), max(p1[0], p2[0])], 
+                     'y': [min(p1[1], p2[1]), max(p1[1], p2[1])]}
         self.C  = tuple((a + b)/2 for a,b in zip(p1,p2))[:] + (0,0,0)[2:3] 
         
         #vtk
@@ -250,7 +265,6 @@ class Interacao:
 
 
         
-        
 class Disco_Disco(Interacao):
     """
     Subclasse para Interação entre Discos
@@ -272,6 +286,7 @@ class Disco_Disco(Interacao):
         rb = elB.raio
         d = math.sqrt( (xa-xb)**2 + (ya-yb)**2 )
         return True if d <= ra+rb else False
+    
         
 class Disco_Disco_k(Disco_Disco):
     """
