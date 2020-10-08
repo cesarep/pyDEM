@@ -169,7 +169,7 @@ class Elemento:
     def atualizaMov(self, *args):
         pass
     
-    def enerK(self):
+    def energia(self):
         return 0
     
     def aplicaF(self, *args):
@@ -300,10 +300,10 @@ class Disco(Elemento):
             dt (float): incremento de tempo.
             campoa (float[2]): vetor de campo de aceleração da cena.
             
-        """
+        """  
         # aplica as condições de contorno
-        #self.movimento['vel'][-1] += self.vt(t)
-        #self.movimento['F'][-1] += self.Ft(t)
+        self.movimento['vel'][-1] += self.vt(t)
+        self.movimento['F'][-1] += self.Ft(t)
         
         # aceleração atual
         a  = self.movimento['F'][-1]/self.massa
@@ -332,19 +332,19 @@ class Disco(Elemento):
         pos = self.movimento['pos'][step]
         self.actor.SetPosition(pos[0], pos[1], 0)
     
-    def enerK(self):
+    def energia(self):
         """
-        Retorna a energia Cinética do Corpo Durante a simulaçao
+        Retorna a energia Cinética do Corpo durante a simulaçao.
 
         Returns:
-            float[]: Energia cinética
+            float[2][]: Energia cinética
 
         """
         # seleciona todas os vetores de velocidade, exceto o primeiro
         v = np.array(self.movimento['vel'][1:-1])
         # modulo da velocidade
         vm = np.linalg.norm(v, axis=1)
- 
+
         return self.massa*vm/2
         
 class Parede(Elemento):
