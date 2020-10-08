@@ -163,9 +163,14 @@ class Elemento:
         self.Ft = lambda t: np.zeros(2)
         self.massa = float('nan')
         
-        
+    # funções chamadas pelo simulador
+    # precisam ser definidas para todos os elementos
+    
     def atualizaMov(self, *args):
         pass
+    
+    def enerK(self):
+        return 0
     
     def aplicaF(self, *args):
         pass
@@ -203,6 +208,7 @@ class Elemento:
         self.v0 = np.array(vel, dtype='float64')
         self.F0 = np.array(forca)
         self.movimento['vel'][0] = self.v0
+        self.movimento['vel'][1] = self.v0
         self.movimento['F'][0] = self.F0
         
     
@@ -249,7 +255,8 @@ class Disco(Elemento):
         self.massa = self.mat.den * self.area
         
         # lista de todas as variaveis do elemento ao decorrer da simulação, pos, vel...
-        self.movimento = {'pos': [centro], 'vel': [self.v0], 'F': [self.F0]}
+        # vel inicial duplicada para calcular corretamente a velocidade média no 1o passo
+        self.movimento = {'pos': [centro], 'vel': [self.v0, self.v0], 'F': [self.F0]}
         
         # config para VTK
         self.disk = vtk.vtkRegularPolygonSource()
@@ -295,16 +302,16 @@ class Disco(Elemento):
             
         """
         # aplica as condições de contorno
-        self.movimento['vel'][-1] += self.vt(t)
-        self.movimento['F'][-1] += self.Ft(t)
+        #self.movimento['vel'][-1] += self.vt(t)
+        #self.movimento['F'][-1] += self.Ft(t)
         
         # aceleração atual
         a  = self.movimento['F'][-1]/self.massa
         # aplica o campo de aceleração da cena
         a += campoa
         
-        # proxima vel
-        vn = self.movimento['vel'][-1] + a*dt
+        # proxima vel em função da velocidade média
+        vn = (self.movimento['vel'][-1]+self.movimento['vel'][-2])/2 + a*dt
         self.movimento['vel'].append(vn)
         
         # proxima posicao
@@ -325,6 +332,20 @@ class Disco(Elemento):
         pos = self.movimento['pos'][step]
         self.actor.SetPosition(pos[0], pos[1], 0)
     
+    def enerK(self):
+        """
+        Retorna a energia Cinética do Corpo Durante a simulaçao
+
+        Returns:
+            float[]: Energia cinética
+
+        """
+        # seleciona todas os vetores de velocidade, exceto o primeiro
+        v = np.array(self.movimento['vel'][1:-1])
+        # modulo da velocidade
+        vm = np.linalg.norm(v, axis=1)
+ 
+        return self.massa*vm/2
         
 class Parede(Elemento):
     """
@@ -353,9 +374,6 @@ class Parede(Elemento):
 
         self.eqreta = np.array([N[0], N[1], np.cross(p1, p2) ])
         self.normal = N
-        
-        print("eq reta: %.3fx %+.3fy %+.3f "% (self.eqreta[0], self.eqreta[1], self.eqreta[2]) )
-        
         
         self.C  = (self.p1+self.p2)/2
         
@@ -546,8 +564,6 @@ class Disco_Parede(Interacao):
         d = np.dot(eqreta, c)
         # se d > 0 então o normal da parede aponta para a esfera        
         N = np.sign(d)*par.normal/np.linalg.norm(par.normal)
-        
-        print(N)
         
         if elemA._tipo == "Parede":
             return N, -N

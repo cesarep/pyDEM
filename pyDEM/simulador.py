@@ -7,8 +7,8 @@ Módulo Simulador
 
 """
 
-import math, numpy, sys
-
+import math, numpy as np, sys
+import matplotlib.pyplot as plt
 
 class Contato:
     """
@@ -26,8 +26,6 @@ class Contato:
         self.elemA = elemA
         self.elemB = elemB
         self.inter = inter
-        
-        print("Novo contato %s" % inter.grupos)
     
     def verifica(self):
         """
@@ -89,6 +87,7 @@ class Simulacao:
         for i in range(0, self.N+1):
             self.passo = i
             prog = i/self.N
+            #print('step ', i)
             # imprime barra de progresso
             sys.stdout.write('\r[%-50s] %d/%d' % ( "#"*int(50*prog) , i, self.N))
             self.step()
@@ -116,7 +115,7 @@ class Simulacao:
         """
         
         self.contatos = []
-        
+    
         eixoX = []
         for elem in self.elementos:
             eixoX.append({'x': elem.aabb()['x'][0],   # coord
@@ -144,6 +143,8 @@ class Simulacao:
                     j += 1
                         
         eixoY = []
+        
+        
         for elem in candidatos:
             eixoY.append({'y': elem.aabb()['y'][0],   # coord
                           't': 'i',                 # inicio
@@ -154,22 +155,24 @@ class Simulacao:
                           'e': elem})               # elemento
         
         eixoY.sort(key = lambda i: i['y'])
-                
+        
         for i in range(0, len(eixoY)):
             if( eixoY[i]['t'] == 'i'): # se for elemento de inicio
                 ref = id(eixoY[i]['e']) # ref para elemento de parada
                 j = i + 1
                 # enquanto nao chega no elemento de parada 
-                
                 while(id(eixoY[j]['e']) != ref):
                     # se algum elemento iniciar
                     if(eixoY[j]['t'] == 'i'):
                         # detecta a interacao entre os elementos
-                        inter = self._dect_inter(eixoY[i]['e'], eixoY[j]['e'])
-                        # acrescenta lista de contatos
-                        self.contatos.append(Contato(eixoY[i]['e'], eixoY[j]['e'], inter))
+                        try:
+                            inter = self._dect_inter(eixoY[i]['e'], eixoY[j]['e'])
+                            # acrescenta lista de contatos
+                            self.contatos.append(Contato(eixoY[i]['e'], eixoY[j]['e'], inter))
+                        except IndexError:
+                            print('\n Contato nao suportado %s x %s' % (eixoY[i]['e'].grupo, eixoY[j]['e'].grupo))
                     j += 1
-        
+                            
         
     def _dect_inter(self, elemA, elemB):
         """
@@ -182,9 +185,11 @@ class Simulacao:
             Interacao para o par de elementos.
 
         """
+
         grupos = sorted([elemA.grupo, elemB.grupo])
+        
         # seleciona a interação que corresponde aos grupos do par de elementos
-        return [inter for inter in self.interacoes if inter.grupos == grupos][0]
+        return [inter for inter in self.interacoes if inter.grupos == grupos][0] or None
         
         
     def _dect_final(self):
@@ -237,6 +242,23 @@ class Simulacao:
             elem.vtk_anim(self._anim_step)
         self.cena.renWin.Render()
         self._anim_step = 0 if self._anim_step == self.N-1 else self._anim_step + 1
+        
+    def energiaCinetica(self):
+        """
+        Plota o gráfico da energia cinética total do sistema ao longo do tempo.
+
+        """
+        K = np.zeros(self.N+1)
+        for elem in self.elementos:
+            #print(elem.enerK())
+            K += elem.enerK()
+        
+        t = np.linspace(0, self.N*self.dt, self.N+1)
+        
+        plt.plot(t, K)
+        plt.xlabel('t')
+        plt.ylabel('K')
+        plt.title('Evolução da energia cinética no tempo')
     
     
         
