@@ -7,7 +7,7 @@ Módulo Simulador
 
 """
 
-import math, numpy
+import math, numpy, sys
 
 
 class Contato:
@@ -26,6 +26,8 @@ class Contato:
         self.elemA = elemA
         self.elemB = elemB
         self.inter = inter
+        
+        print("Novo contato %s" % inter.grupos)
     
     def verifica(self):
         """
@@ -43,7 +45,7 @@ class Contato:
         """
         if(self.gap):
             na, nb = self.inter.normal(self.elemA, self.elemB)
-            F = self.inter.calcForca(self.elemA, self.elemB, self.gap)
+            F = self.inter.lei.calcForca(self.elemA, self.elemB, self.gap)
             self.elemA.aplicaF(F*na)
             self.elemB.aplicaF(F*nb)
 
@@ -71,11 +73,12 @@ class Simulacao:
 
         # incremento de tempo critico
         mmn = min(self.elementos, key = lambda i: i.massa).massa # menor massa
-        kmx = max(self.interacoes, key= lambda i: i.k).k # maior rigidez
+        kmx = max(self.interacoes, key= lambda i: i.lei.k).lei.k # maior rigidez
         self.dtc = 2*math.sqrt(mmn/kmx)
         
         if(dt > self.dtc):
-            raise ValueError('O incremento de tempo maior que o crtico! defina um dt menor que %g'% self.dtc)
+            #raise ValueError('O incremento de tempo maior que o crtico! defina um dt menor que %g' % self.dtc)
+            print('incremento maior que crítico')
         else:
             self.dt = dt
         
@@ -83,10 +86,13 @@ class Simulacao:
         """
         Realiza o ciclo de calculo
         """
-        for i in range(0, self.N):
+        for i in range(0, self.N+1):
             self.passo = i
-            print('step %d' % i)
+            prog = i/self.N
+            # imprime barra de progresso
+            sys.stdout.write('\r[%-50s] %d/%d' % ( "#"*int(50*prog) , i, self.N))
             self.step()
+        
         
         
     def step(self):

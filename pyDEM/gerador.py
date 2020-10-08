@@ -272,7 +272,7 @@ class Disco(Elemento):
         """
         Retorna um vetor com a ultima posição do elemento
         """
-        return self.movimento['pos'][-1]
+        return np.array(self.movimento['pos'][-1])
     
     def aplicaF(self, F):
         """
@@ -346,7 +346,17 @@ class Parede(Elemento):
         # transforma os vetores 2d em 3d com z=0 para utilização no VTK
         self.p1 = np.pad(p1, (0,1), 'constant')
         self.p2 = np.pad(p2, (0,1), 'constant')
-        #self._eqreta
+        u = self.p2 - self.p1
+        self.L = np.linalg.norm(u)
+        
+        N = np.array([-u[1], u[0]])
+
+        self.eqreta = np.array([N[0], N[1], np.cross(p1, p2) ])
+        self.normal = N
+        
+        print("eq reta: %.3fx %+.3fy %+.3f "% (self.eqreta[0], self.eqreta[1], self.eqreta[2]) )
+        
+        
         self.C  = (self.p1+self.p2)/2
         
         #vtk
@@ -356,24 +366,60 @@ class Parede(Elemento):
         
         self._set_vtk(lineSource, cor)
         
-    def aabb(self):
+    def aabb(self, margin=0.1):
         """
         Retorna a caixa de contorno do elemento, axis-aligned bounding box
         """
         p1, p2 = self.p1, self.p2
-        return {'x': [min(p1[0], p2[0]), max(p1[0], p2[0])], 
-                'y': [min(p1[1], p2[1]), max(p1[1], p2[1])]}
+        return {'x': [min(p1[0], p2[0])-margin*self.L, max(p1[0], p2[0])+margin*self.L], 
+                'y': [min(p1[1], p2[1])-margin*self.L, max(p1[1], p2[1])+margin*self.L]}
 
 
 
 
 # --------------------------------- INTERAÇÃO -------------------------------- #
 
+class LeiContato:
+    """
+    Classe base para as Leis de Contato
+    """
+    pass
+
+class LeiK(LeiContato):
+    """
+    Lei de Contato Simples com coeficiente de rigidez k
+    """
+    def __init__(self, k):
+        """
+        Construtor da classe LeiK. Toma como paremetro um coeficiente de rigidez k.
+
+        Args:
+            k (float): Coeficiente de rigizez em unidade de força/comprimento.
+
+        """
+        self.k = k
+        
+    def calcForca(self, elemA, elemB, gap):
+        """
+        Calcula, a partir do gap, a força atuante em em par de elementos
+
+        Args:
+            elemA, elemB (Elemento): Par de elementos.
+            gap (float): gap do contato entre o par de elementos.
+            
+        Returns:
+            float: magnitude da força do contato
+
+        """
+        return self.k*gap
+    
+
 class Interacao:
     """
     Classe base para Interação entre elementos
     """
-    def __init__(self, grupo, grupo2):
+    def __init__(self, lei, grupo, grupo2):
+        self.lei = lei
         self.grupo = grupo
         self.grupo2 = grupo2
         self.grupos = sorted([grupo, grupo2])
@@ -383,6 +429,76 @@ class Disco_Disco(Interacao):
     """
     Subclasse para Interação entre Discos
     """
+    def __init__(self, lei, grupo='disco', grupo2='disco'):
+        """
+        Construtor da classe Disco_Disco.
+
+        Args:
+            lei (LeiContato): Lei de Contato.
+            grupo, grupo2 (string): Nome do grupo de elementos. Padrão 'disco'.
+
+        """
+        Interacao.__init__(self, lei, grupo, grupo2)
+    
+    def verifica(self, elemA, elemB):
+        """
+        Verifica o contato entre dois elementos.
+        
+        Retorna a caixa de contorno do elemento, axis-aligned bounding box
+        Args:
+            elemA, elemB (Elemento): Par de elementos testados.
+ 
+        Returns:
+            gap (float) entre os elementos ou False caso não esteja em contato.
+
+        """
+        ca = elemA.pos()
+        ra = elemA.raio
+        
+        cb = elemB.pos()
+        rb = elemB.raio
+        
+        d = np.linalg.norm(ca-cb)
+        
+        return d-ra-rb if d <= ra+rb else False
+    
+    def normal(self, elemA, elemB):
+        """
+        Retorna o vetor normal do contato
+
+        Args:
+            elemA, elemB (Elemento): Par de elementos.
+
+        Returns:
+            float[2][2]: vetores normais do par de elementos do contato.
+
+        """
+        ca = elemA.pos()
+        cb = elemB.pos()
+        d = np.linalg.norm(ca-cb)
+        # vetor normal de A->B
+        na = np.array(cb-ca)/d
+        # vetor normal de B->A
+        nb = -na
+        return na, nb
+    
+
+class Disco_Parede(Interacao):
+    """
+    Subclasse para Interação entre Disco e Parede
+    """
+    def __init__(self, lei, grupo='disco', grupo2='parede'):
+        """
+        Construtor da classe Disco_Parede.
+
+        Args:
+            lei (LeiContato): Lei de Contato.
+            grupo (string): Nome do grupo de elementos. Padrão 'disco'.
+            grupo2 (string): Nome do grupo de elementos. Padrão 'parede'.
+
+        """
+        Interacao.__init__(self, lei, grupo, grupo2)
+    
     def verifica(self, elemA, elemB):
         """
         Verifica o contato entre dois elementos.
@@ -394,13 +510,20 @@ class Disco_Disco(Interacao):
             gap (float) entre os elementos ou False caso não esteja em contato.
 
         """
-        xa, ya = elemA.pos()
-        ra = elemA.raio
-        xb, yb = elemB.pos()
-        rb = elemB.raio
-        d = math.sqrt( (xa-xb)**2 + (ya-yb)**2 )
-        return d-ra-rb if d <= ra+rb else False
-    
+        if elemA._tipo == "Parede":
+            par, esf = elemA, elemB
+        else:
+            par, esf = elemB, elemA        
+        
+        eqreta = par.eqreta
+        c = np.pad(esf.pos(), (0,1), 'constant', constant_values=1)
+        r = esf.raio
+        
+        d = abs(np.dot(eqreta, c))/np.linalg.norm(par.normal)
+        
+        return d-r if d <= r else False
+        
+        
     def normal(self, elemA, elemB):
         """
         Retorna o vetor normal do contato
@@ -409,99 +532,25 @@ class Disco_Disco(Interacao):
             elemA, elemB (Elemento): Par de elementos.
 
         Returns:
-            float[]: vetor normal do contato.
+            float[2][2]: vetores normais do par de elementos do contato.
 
         """
-        xa, ya = elemA.pos()
-        xb, yb = elemB.pos()
+        if elemA._tipo == "Parede":
+            par, esf = elemA, elemB
+        else:
+            par, esf = elemB, elemA
         
-        # gap
-        mn = math.sqrt( (xa-xb)**2 + (ya-yb)**2 )
+        eqreta = par.eqreta
+        c = np.pad(esf.pos(), (0,1), 'constant', constant_values=1)
         
-        # vetor normal de A->B
-        na = np.array([xb-xa, yb-ya])/mn
-        # vetor normal de B->A
-        nb = -na
-        return na, nb
-    
+        d = np.dot(eqreta, c)
+        # se d > 0 então o normal da parede aponta para a esfera        
+        N = np.sign(d)*par.normal/np.linalg.norm(par.normal)
         
-class Disco_Disco_k(Disco_Disco):
-    """
-    Subclasse para Interação entre Discos pela lei de Hooke.
-    """
-    def __init__(self, k, grupo = "disco", grupo2 = 'disco'):
-        """
-        Construtor da classe Disco_Disco_k.
-
-        Args:
-            k (float): coef rigidez do contato.
-            grupo (string): Nome do grupo de elementos candidatos, padrão "disco".
-            grupo2 (string): Nome de grupo antagonista, padrão "disco".
-
-        """
-        self.k = k
-        Interacao.__init__(self, grupo, grupo2)
-    
-    def calcForca(self, elemA, elemB, gap):
-        """
-        Calcula, a partir do gap, a força atuante em em par de elementos
-
-        Args:
-            elemA, elemB (Elemento): Par de elementos.
-            gap (float): gap do contato entre o par de elementos.
-            
-        Returns:
-            float: magnitude da força do contato
-
-        """
-        return self.k*gap
-
-
-class Disco_Parede(Interacao):
-    """
-    Subclasse para Interação entre Disco e Parede
-    """
-    def verifica(self, elemA, elemB):
-        """
-        Verifica o contato entre dois elementos.
-
-        Args:
-            elemA, elemB (Elemento): Par de elementos testados.
-
-        Returns:
-            float: 
-
-        """
-        # distancia ponto-reta
+        print(N)
         
-class Disco_Parede_k(Disco_Parede):
-    """
-    Subclasse para Interacao entre Disco e Parede pela lei de Hooke.
-    """
-    def __init__(self, k, grupo = 'disco', grupo2 = 'parede'):
-        """
-        Construtor da classe Disco_Parede.
+        if elemA._tipo == "Parede":
+            return N, -N
+        else:
+            return -N, N
 
-        Args:
-            k (float): coef rigidez do contato.
-            grupo (string): Nome do grupo de elementos candidatos, padrão "disco".
-            grupo2 (string): Nome de grupo antagonista, padrão "parede".
-
-        """
-        self.k = k
-        Interacao.__init__(self, grupo, grupo2)
-        
-    def calcForca(self, elemA, elemB, gap):
-        """
-        Calcula, a partir do gap, a força atuante em em par de elementos
-
-        Args:
-            elemA, elemB (Elemento): Par de elementos.
-            gap (float): gap do contato entre o par de elementos.
-            
-        Returns:
-            float: magnitude da força do contato
-
-        """
-        return self.k*gap
-    
