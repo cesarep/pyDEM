@@ -52,14 +52,15 @@ class Simulacao:
     """
     Classe para simulação
     """
-    def __init__(self, cena, passos, dt = 1e-3):
+    def __init__(self, cena, passos, dt = 1e-3, diss = 0.1):
         """
         Construtor da classe Simulação.
 
         Args:
             cena (Cena): Cena a ser simulada.
             passos (int): Número de passos.
-            dt (float): Incremento de Tempo. padrão 1e-3
+            dt (float): Incremento de Tempo. padrão 1e-3.
+            diss (float): Parametro de dissipação de energia entre 0-1. padrão 0.1.
 
         """
         self.cena = cena
@@ -67,6 +68,7 @@ class Simulacao:
         self.interacoes = cena.interacao
         self.N = passos
         self.passo = 0
+        self.diss = diss
 
         # incremento de tempo critico
         mmn = min(self.elementos, key = lambda i: i.massa).massa # menor massa
@@ -215,7 +217,7 @@ class Simulacao:
         Movimenta os elementos.
         """
         for elem in self.elementos:
-            elem.atualizaMov(self.passo*self.dt, self.dt, self.cena.campoA)
+            elem.atualizaMov(self.passo*self.dt, self.dt, self.cena.campoA, self.diss)
             
             
     def anim(self, pps = 50):

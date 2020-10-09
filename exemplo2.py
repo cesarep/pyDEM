@@ -16,6 +16,7 @@ cena = ger.Cena('teste', [0, -9.81])
 mat = ger.Rigido(2500)   
 
 esf = ger.Disco(0.2, (0, .5), mat, cor=(0,128,255))
+esf.CondInicial(vel=[0,-2])
 cena.addElem(esf)
 
 par = ger.Parede((-.5,0), (.5, 0))
@@ -27,7 +28,7 @@ inter_d_p = ger.Disco_Parede(lei)
 
 cena.addInter(inter_d_p)
 
-simu = sim.Simulacao(cena, 1000, dt=1e-3)
+simu = sim.Simulacao(cena, 1500, dt=1e-3, diss=0.4)
 
 simu.calcular()
 

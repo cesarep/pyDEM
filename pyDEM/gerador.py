@@ -291,7 +291,7 @@ class Disco(Elemento):
         """
         self.movimento['F'][-1] += F
         
-    def atualizaMov(self, t, dt, campoa):
+    def atualizaMov(self, t, dt, campoa, diss):
         """
         Atualiza a posição do corpo
         
@@ -299,12 +299,17 @@ class Disco(Elemento):
             t (float): tempo atual na simulação.
             dt (float): incremento de tempo.
             campoa (float[2]): vetor de campo de aceleração da cena.
+            diss (float): Parametro de dissipação.
             
         """  
         # aplica as condições de contorno
         self.movimento['vel'][-1] += self.vt(t)
         self.movimento['F'][-1] += self.Ft(t)
         
+        # dissipação de energia
+        # decrementa as forças que aumentam a velocidade, e incremente as forças que diminuem
+        self.movimento['F'][-1] *= (1-diss*np.sign(self.movimento['F'][-1]*self.movimento['vel'][-1]))
+                
         # aceleração atual
         a  = self.movimento['F'][-1]/self.massa
         # aplica o campo de aceleração da cena
