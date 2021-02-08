@@ -36,7 +36,7 @@ namespace pyDEM {
 	void Circle::move(double dt, vct acc_f, double disp) {
 		vct a = forces.end()[-1]/mass + acc_f;
 		
-		vct vn = (velocities.end()[-1] + velocities.end()[-2])/2 + a*dt;
+		vct vn = (velocities.end()[-1] + velocities.end()[-2])/2. + a*dt;
 		velocities.push_back(vn);
 		
 		vct cn = coords.end()[-1] + vn*dt;
@@ -58,7 +58,7 @@ namespace pyDEM {
 	Wall::Wall(vct p1, vct p2, std::string group)
 		: Element(group, "WALL", _nullmat), p1(p1), p2(p2) {
 		updtMA(0);
-		C = (p1 + p2)/2;
+		C = (p1 + p2)/2.;
 		vct L = p2 - p1, u = dir(L);
 		length = norm(L);
 		normal = {-u[1], u[0]};

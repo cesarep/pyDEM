@@ -3,6 +3,7 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
+#include <algorithm>
 #include <vector>
 #include <valarray>
 #define _USE_MATH_DEFINES

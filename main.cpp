@@ -9,18 +9,15 @@ int main(){
 
 	Material mat = Rigid(2500.);
 
-	Circle esf = Circle({-0.2, .3}, 0.2, mat);
-	esf.setInit({2, -1}, {0,0});
+	Circle esf = Circle({1,1}, 0.15, mat);
+	esf.setInit({1.5, -.5}, {0,0});
 
-	Circle esf2 = Circle({0.25, .8}, 0.1, mat);
-
-	Circle esf3 = Circle({0.3, 1.3}, 0.15, mat);
+	Circle esf2 = Circle({1.5, 1.2}, 0.2, mat);
 
 	cena.addElem(esf);
 	cena.addElem(esf2);
-	cena.addElem(esf3);
 
-	auto par = Wall({-1, 0}, {1, 0});
+	auto par = Wall({0, 0}, {3, 0});
 
 	cena.addElem(par);
 

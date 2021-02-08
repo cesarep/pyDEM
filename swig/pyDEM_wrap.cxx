@@ -3512,6 +3512,20 @@ SWIGINTERNINLINE PyObject*
 }
 
 
+SWIGINTERN int
+SWIG_AsVal_bool (PyObject *obj, bool *val)
+{
+  int r;
+  if (!PyBool_Check(obj))
+    return SWIG_ERROR;
+  r = PyObject_IsTrue(obj);
+  if (r == -1)
+    return SWIG_ERROR;
+  if (val) *val = r ? true : false;
+  return SWIG_OK;
+}
+
+
 SWIGINTERNINLINE PyObject* 
 SWIG_From_unsigned_SS_long  (unsigned long value)
 {
@@ -8796,6 +8810,58 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_candidate_included_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  pyDEM::candidate *arg1 = (pyDEM::candidate *) 0 ;
+  bool arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  bool val2 ;
+  int ecode2 = 0 ;
+  PyObject *swig_obj[2] ;
+  
+  if (!SWIG_Python_UnpackTuple(args, "candidate_included_set", 2, 2, swig_obj)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(swig_obj[0], &argp1,SWIGTYPE_p_pyDEM__candidate, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "candidate_included_set" "', argument " "1"" of type '" "pyDEM::candidate *""'"); 
+  }
+  arg1 = reinterpret_cast< pyDEM::candidate * >(argp1);
+  ecode2 = SWIG_AsVal_bool(swig_obj[1], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "candidate_included_set" "', argument " "2"" of type '" "bool""'");
+  } 
+  arg2 = static_cast< bool >(val2);
+  if (arg1) (arg1)->included = arg2;
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_candidate_included_get(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  pyDEM::candidate *arg1 = (pyDEM::candidate *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  PyObject *swig_obj[1] ;
+  bool result;
+  
+  if (!args) SWIG_fail;
+  swig_obj[0] = args;
+  res1 = SWIG_ConvertPtr(swig_obj[0], &argp1,SWIGTYPE_p_pyDEM__candidate, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "candidate_included_get" "', argument " "1"" of type '" "pyDEM::candidate *""'"); 
+  }
+  arg1 = reinterpret_cast< pyDEM::candidate * >(argp1);
+  result = (bool) ((arg1)->included);
+  resultobj = SWIG_From_bool(static_cast< bool >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_new_candidate(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   pyDEM::candidate *result = 0 ;
@@ -9534,6 +9600,8 @@ static PyMethodDef SwigMethods[] = {
 	 { "candidate_type_get", _wrap_candidate_type_get, METH_O, NULL},
 	 { "candidate_ref_set", _wrap_candidate_ref_set, METH_VARARGS, NULL},
 	 { "candidate_ref_get", _wrap_candidate_ref_get, METH_O, NULL},
+	 { "candidate_included_set", _wrap_candidate_included_set, METH_VARARGS, NULL},
+	 { "candidate_included_get", _wrap_candidate_included_get, METH_O, NULL},
 	 { "new_candidate", _wrap_new_candidate, METH_NOARGS, NULL},
 	 { "delete_candidate", _wrap_delete_candidate, METH_O, NULL},
 	 { "candidate_swigregister", candidate_swigregister, METH_O, NULL},

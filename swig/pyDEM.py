@@ -4,6 +4,11 @@
 # Do not make changes to this file unless you know what you are doing--modify
 # the SWIG interface file instead.
 
+
+import vtk
+
+
+
 from sys import version_info as _swig_python_version_info
 if _swig_python_version_info < (2, 7, 0):
     raise RuntimeError("Python 2.7 or later required")
@@ -177,6 +182,13 @@ class Element(object):
 
     def view(self, i=0):
         return _pyDEM.Element_view(self, i)
+
+    def _set_vtk(self, source):
+    	self.mapper = vtk.vtkPolyDataMapper()
+    	self.mapper.SetInputConnection(source.GetOutputPort())
+    	self.actor = vtk.vtkActor()
+    	self.actor.SetMapper(self.mapper)
+
     __swig_destroy__ = _pyDEM.delete_Element
 
 # Register Element in _pyDEM:
@@ -190,6 +202,16 @@ class Circle(Element):
 
     def __init__(self, *args):
         _pyDEM.Circle_swiginit(self, _pyDEM.new_Circle(*args))
+
+        print("_set_vtk configuração dos atores")
+        print(args[1])
+        self.disk = vtk.vtkRegularPolygonSource()
+        self.disk.SetNumberOfSides(50)
+        self.disk.SetRadius(args[1])
+        self._set_vtk(self.disk)
+
+
+
 
     def move(self, dt, acc_f, disp=0.1):
         return _pyDEM.Circle_move(self, dt, acc_f, disp)
@@ -207,6 +229,14 @@ class Wall(Element):
 
     def __init__(self, *args):
         _pyDEM.Wall_swiginit(self, _pyDEM.new_Wall(*args))
+
+        lineSource = vtk.vtkLineSource()
+        lineSource.SetPoint1(self.p1 + [0])
+        lineSource.SetPoint2(self.p2 + [0])
+        self._set_vtk(lineSource)
+
+
+
 
     def aabb(self):
         return _pyDEM.Wall_aabb(self)
@@ -320,17 +350,69 @@ class Scene(object):
     def __init__(self):
         _pyDEM.Scene_swiginit(self, _pyDEM.new_Scene())
 
+        self.ren = vtk.vtkRenderer()
+        self.ren.SetBackground((.1, .2, .4))
+
+
+
+
     def setAccField(self, acc):
         return _pyDEM.Scene_setAccField(self, acc)
 
     def addElem(self, elem):
-        return _pyDEM.Scene_addElem(self, elem)
+        val = _pyDEM.Scene_addElem(self, elem)
+
+        self.ren.AddActor(elem.actor)
+
+
+        return val
+
 
     def addInter(self, inter):
         return _pyDEM.Scene_addInter(self, inter)
     elements = property(_pyDEM.Scene_elements_get, _pyDEM.Scene_elements_set)
     interactions = property(_pyDEM.Scene_interactions_get, _pyDEM.Scene_interactions_set)
     acc_field = property(_pyDEM.Scene_acc_field_get, _pyDEM.Scene_acc_field_set)
+
+    def show(self):
+    	"""
+    	Renderiza a cena numa janela interativa.
+    	"""
+    	self._configRen()  
+    	self._startRen()        
+
+    def _configRen(self):
+    	"""
+    	Configura o VTK para renderizar a cena
+    	"""
+    # janela de rendericação
+    	self.renWin = vtk.vtkRenderWindow()
+    	self.renWin.AddRenderer(self.ren)
+    	self.renWin.SetSize(600, 600)
+    # interação mouse-janela
+    	self.iren = vtk.vtkRenderWindowInteractor()
+    	self.iren.SetRenderWindow(self.renWin)
+    # estilo de visualização de imagem 
+    # scroll da zoom, e arrastar com scroll move a cena
+    	self.iren.SetInteractorStyle(vtk.vtkInteractorStyleImage())
+    	self.iren.AddObserver('ExitEvent', self.hide)
+    	self.iren.Initialize()
+
+    def _startRen(self):
+    	"""
+    	Abre a janela de renderização
+    	"""
+    	self.renWin.Render()
+    	self.iren.Start()
+
+    def hide(self, iren = None, event = None):
+    	"""
+    	Fecha a janela
+    	"""
+    	self.renWin.Finalize()
+    	self.iren.TerminateApp()
+    	del self.renWin, self.iren
+
     __swig_destroy__ = _pyDEM.delete_Scene
 
 # Register Scene in _pyDEM:
@@ -363,6 +445,7 @@ class candidate(object):
     pos = property(_pyDEM.candidate_pos_get, _pyDEM.candidate_pos_set)
     type = property(_pyDEM.candidate_type_get, _pyDEM.candidate_type_set)
     ref = property(_pyDEM.candidate_ref_get, _pyDEM.candidate_ref_set)
+    included = property(_pyDEM.candidate_included_get, _pyDEM.candidate_included_set)
 
     def __init__(self):
         _pyDEM.candidate_swiginit(self, _pyDEM.new_candidate())

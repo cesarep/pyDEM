@@ -6,11 +6,10 @@ namespace pyDEM {
 		elemA(elemA), elemB(elemB), inter(inter) {};
 
 	void Contact::verify() {
-		if(inter)
-			gap = inter->verify(elemA, elemB);					
+		gap = inter->verify(elemA, elemB);					
 	};
 	void Contact::applyF() {
-		if(gap > 0. and inter){
+		if(gap > 0.){
 			vct2d N = inter->getNormal(elemA, elemB);
 			double F = inter->law->calcF(elemA, elemB, gap);
 			inter->applyF(elemA, elemB, N, F);
@@ -72,7 +71,7 @@ namespace pyDEM {
 				Element *ref = axis[i].ref;
 				size_t j=i+1, c=0;
 				while (axis[j].ref != ref){
-					if(axis[j].type < 0 and !axis[j].included){
+					if(axis[j].type < 0 && !axis[j].included){
 						candidates.push_back(
 							{axis[j].ref->aabb()[1][0], -1, axis[j].ref, false}
 						);
@@ -104,7 +103,7 @@ namespace pyDEM {
 				Element* ref = candidates[i].ref;
 				size_t j=i+1;
 				while (candidates[j].ref != ref){
-					if(candidates[j].type < 0 and !candidates[j].included){
+					if(candidates[j].type < 0 && !candidates[j].included){
 						auto inter = _dect_inter(candidates[i].ref, candidates[j].ref);
 						if(inter)
 							contacts.push_back(
@@ -123,8 +122,8 @@ namespace pyDEM {
 	Interaction *Simulation::_dect_inter(Element *elA, Element *elB) {
 		auto inter = *std::find_if(scene->interactions.begin(), scene->interactions.end(),
 			[&](Interaction *a){
-				return (elA->group == a->groupA and elB->group == a->groupB) 
-				or (elB->type == a->groupA and elA->type == a->groupB);
+				return (elA->group == a->groupA && elB->group == a->groupB) 
+				|| (elB->type == a->groupA && elA->type == a->groupB);
 			});
 		return inter;
 	};
